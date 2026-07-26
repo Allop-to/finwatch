@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# DuckDB databases
+*.duckdb
+*.db
+
+# Node
+node_modules/
+
+# Superpowers
+.superpowers/
+
+# Capacitor
+frontend/android/
+
+# Pip cache
+.pip/

@@ -1,0 +1,35 @@
+[
+  {"name": "餐饮", "icon": "🍔", "children": [
+    {"name": "咖啡饮品", "icon": "☕"},
+    {"name": "正餐", "icon": "🍜"},
+    {"name": "外卖", "icon": "🥡"}
+  ]},
+  {"name": "交通", "icon": "🚗", "children": [
+    {"name": "加油充电", "icon": "⛽"},
+    {"name": "公共交通", "icon": "🚌"},
+    {"name": "打车", "icon": "🚕"}
+  ]},
+  {"name": "居住", "icon": "🏠", "children": [
+    {"name": "水电燃气", "icon": "💡"},
+    {"name": "房租/房贷", "icon": "🏠"},
+    {"name": "维修物业", "icon": "🔧"}
+  ]},
+  {"name": "购物", "icon": "🛒", "children": [
+    {"name": "服饰", "icon": "👕"},
+    {"name": "数码", "icon": "📱"},
+    {"name": "日用品", "icon": "🛍️"}
+  ]},
+  {"name": "娱乐", "icon": "🎮", "children": [
+    {"name": "电影演出", "icon": "🎬"},
+    {"name": "游戏", "icon": "🎮"}
+  ]},
+  {"name": "医疗健康", "icon": "💊"},
+  {"name": "教育学习", "icon": "📚"},
+  {"name": "收入", "icon": "💰", "children": [
+    {"name": "工资", "icon": "💼"},
+    {"name": "投资理财", "icon": "📈"},
+    {"name": "其他收入", "icon": "🎁"}
+  ]},
+  {"name": "转账", "icon": "🔄"},
+  {"name": "其他", "icon": "📋"}
+]
