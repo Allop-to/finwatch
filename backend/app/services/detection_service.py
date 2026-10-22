@@ -4,6 +4,7 @@ import polars as pl
 from sqlalchemy.orm import Session
 from app.models.transaction import Transaction
 from app.models.detection_result import DetectionResult as DRModel
+from app.models.detection_rule import DetectionRule
 from app.engine.detectors import (
     StatisticalDetector, RuleDetector, PatternDetector, DetectionContext,
 )
@@ -27,8 +28,23 @@ async def run_detection(
         pl.col("transaction_date").dt.hour().alias("hour_bucket")
     )
 
+    db_rules = db.query(DetectionRule).filter(
+        DetectionRule.user_id == user_id,
+        DetectionRule.is_enabled.is_(True),
+    ).all()
+    custom_rules = [
+        {
+            "id": r.id,
+            "name": r.name,
+            "condition": r.condition or {},
+            "is_hard_rule": r.is_hard_rule,
+        }
+        for r in db_rules
+    ]
+
     context = DetectionContext(
         user_id=user_id, transactions=df, budgets=[], global_baselines={},
+        rules=custom_rules,
     )
 
     detectors = [StatisticalDetector(), RuleDetector(), PatternDetector()]
@@ -53,8 +69,10 @@ async def run_detection(
     for txn_id, det_results in results_by_txn.items():
         hard_max = max((
             r.anomaly_score for r in det_results
-            if any(reason.get("rule_id") in ("single_large_txn",)
-                   for reason in r.reason)
+            if any(
+                reason.get("is_hard") or reason.get("rule_id") == "single_large_txn"
+                for reason in r.reason
+            )
         ), default=0.0)
 
         weighted_sum = 0.0
@@ -99,14 +117,31 @@ async def run_detection(
             except Exception:
                 pass
 
-        dr = DRModel(
-            user_id=user_id, transaction_id=txn_id,
-            detector_type=", ".join(set(r.detector_type for r in det_results)),
-            severity=severity, anomaly_score=round(final_score, 3),
-            reason=combined_reasons, suggestion=suggestion,
-        )
-        db.add(dr)
-        saved.append(dr)
+        detector_type = ", ".join(set(r.detector_type for r in det_results))
+        # One result per (user, transaction): reruns update in place instead of
+        # appending duplicates, which the 30-minute scheduler would otherwise pile up.
+        existing = db.query(DRModel).filter(
+            DRModel.user_id == user_id,
+            DRModel.transaction_id == txn_id,
+        ).order_by(DRModel.id).first()
+
+        if existing:
+            existing.detector_type = detector_type
+            existing.severity = severity
+            existing.anomaly_score = round(final_score, 3)
+            existing.reason = combined_reasons
+            if suggestion is not None:
+                existing.suggestion = suggestion
+            saved.append(existing)
+        else:
+            dr = DRModel(
+                user_id=user_id, transaction_id=txn_id,
+                detector_type=detector_type,
+                severity=severity, anomaly_score=round(final_score, 3),
+                reason=combined_reasons, suggestion=suggestion,
+            )
+            db.add(dr)
+            saved.append(dr)
 
     db.commit()
     return saved

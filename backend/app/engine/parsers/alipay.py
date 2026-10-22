@@ -18,7 +18,8 @@ class AlipayParser(BaseParser):
             except ValueError:
                 amount = 0.0
             income_outcome = row.get("收/支", "")
-            txn_type = "income" if ("收入" in income_outcome or (amount_str and float(amount_str) > 0)) else "expense"
+            # 支付宝账单金额恒为正，方向只能由「收/支」列决定
+            txn_type = "income" if "收入" in income_outcome else "expense"
             date_str = row.get("交易时间", row.get("交易创建时间", ""))
             try:
                 txn_date = datetime.strptime(date_str.strip(), "%Y-%m-%d %H:%M:%S")

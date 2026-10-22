@@ -73,7 +73,7 @@ def _hardcoded_fallback(**kwargs) -> str:
     emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(severity, "⚠️")
 
     return (
-        f"{emoji} 检测到{sev_text}异常消费\\n\\n"
+        f"{emoji} 检测到{sev_text}异常消费\n\n"
         f"该笔消费金额 ¥{amount:,.2f} 触发了异常检测规则。"
         f"建议核实该笔消费详情，关注近期类似支出模式。"
     )

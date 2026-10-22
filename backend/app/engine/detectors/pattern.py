@@ -1,8 +1,11 @@
 """PatternDetector: behavioral pattern change detection (Phase 2)."""
+import logging
 from typing import List
 import polars as pl
 import numpy as np
 from .base import BaseDetector, DetectionResult, DetectionContext
+
+logger = logging.getLogger(__name__)
 
 
 class PatternDetector(BaseDetector):
@@ -89,7 +92,7 @@ class PatternDetector(BaseDetector):
                     }],
                 ))
         except Exception:
-            pass
+            logger.exception("pattern detection step failed")
         return results
 
     def _detect_new_merchants(self, txns: pl.DataFrame) -> List[DetectionResult]:
@@ -130,7 +133,7 @@ class PatternDetector(BaseDetector):
                         }],
                     ))
         except Exception:
-            pass
+            logger.exception("pattern detection step failed")
         return results
 
     def _detect_subscription_anomaly(self, txns: pl.DataFrame) -> List[DetectionResult]:
@@ -140,11 +143,19 @@ class PatternDetector(BaseDetector):
             if "description" not in txns.columns:
                 return results
 
+            # Cast/fill nulls first: an all-null column has Null dtype, and
+            # str.contains on it raises InvalidOperationError.
+            description = pl.col("description").cast(pl.Utf8).fill_null("")
+            merchant = (
+                pl.col("merchant").cast(pl.Utf8).fill_null("")
+                if "merchant" in txns.columns else None
+            )
+
             for keyword in self.SUBSCRIPTION_MERCHANTS:
-                subs = txns.filter(
-                    (pl.col("description").str.contains(keyword)) |
-                    (pl.col("merchant").str.contains(keyword))
-                )
+                match = description.str.contains(keyword)
+                if merchant is not None:
+                    match = match | merchant.str.contains(keyword)
+                subs = txns.filter(match)
                 if subs.is_empty():
                     continue
 
@@ -170,5 +181,5 @@ class PatternDetector(BaseDetector):
                             }],
                         ))
         except Exception:
-            pass
+            logger.exception("pattern detection step failed")
         return results

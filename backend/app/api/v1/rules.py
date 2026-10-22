@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 import csv, io
 from datetime import datetime
@@ -134,7 +135,10 @@ def data_stats(db: Session = Depends(get_db)):
         transactions=db.query(Transaction).filter(Transaction.user_id == 1).count(),
         detections=db.query(DRModel).filter(DRModel.user_id == 1).count(),
         budgets=db.query(Budget).filter(Budget.user_id == 1).count(),
-        categories=db.query(Category).filter(Category.user_id == 1).count(),
+        # System categories have user_id = NULL and are shared by every user.
+        categories=db.query(Category).filter(
+            or_(Category.user_id == 1, Category.user_id.is_(None))
+        ).count(),
         db_size_kb=size_kb,
     )
 
@@ -155,10 +159,11 @@ def export_csv(db: Session = Depends(get_db)):
             t.payment_method or "", t.source,
         ])
 
-    output.seek(0)
+    # UTF-8 BOM so Excel opens the Chinese headers without mojibake.
+    content = "\ufeff" + output.getvalue()
     return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
+        iter([content]),
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=finwatch_export.csv"},
     )
 

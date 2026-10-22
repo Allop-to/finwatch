@@ -9,6 +9,16 @@ from app.services.import_service import process_import
 router = APIRouter(prefix="/imports", tags=["imports"])
 
 
+def _decode_bill(raw: bytes) -> str:
+    """支付宝/微信导出的账单可能是 UTF-8（含 BOM）或 GBK，依次尝试。"""
+    for encoding in ("utf-8-sig", "gb18030"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
 @router.post("/upload", response_model=ImportResultResponse)
 async def upload(
     file: UploadFile = File(...),
@@ -17,7 +27,7 @@ async def upload(
 ):
     if source_type not in ("alipay", "wechat"):
         raise HTTPException(400, f"Unsupported source type: {source_type}")
-    content = (await file.read()).decode("utf-8")
+    content = _decode_bill(await file.read())
     return process_import(db, file.filename, source_type, content)
 
 

@@ -9,11 +9,17 @@ from app.schemas.transaction import TransactionCreate
 
 def _compute_hash(user_id: int, amount: float, txn_date: datetime,
                   merchant: Optional[str], description: Optional[str]) -> str:
-    raw = f"{user_id}|{amount}|{txn_date.isoformat()}|{merchant or ''}|{description or ''}"
+    # Normalize before hashing so re-imports that differ only in whitespace,
+    # case or amount formatting still dedupe.
+    merchant_norm = (merchant or "").strip().casefold()
+    description_norm = (description or "").strip().casefold()
+    amount_norm = "{:.2f}".format(float(amount))
+    raw = f"{user_id}|{amount_norm}|{txn_date.isoformat()}|{merchant_norm}|{description_norm}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def create_transaction(db: Session, data: TransactionCreate, user_id: int = 1) -> Transaction:
+def create_transaction(db: Session, data: TransactionCreate, user_id: int = 1,
+                       import_id: Optional[int] = None) -> Transaction:
     txn_hash = _compute_hash(user_id, data.amount, data.transaction_date,
                              data.merchant, data.description)
     existing = db.query(Transaction).filter(
@@ -32,6 +38,7 @@ def create_transaction(db: Session, data: TransactionCreate, user_id: int = 1) -
         merchant=data.merchant,
         payment_method=data.payment_method,
         source=data.source,
+        import_id=import_id,
         idempotency_hash=txn_hash,
         tags=data.tags,
     )

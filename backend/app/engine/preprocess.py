@@ -110,6 +110,8 @@ class DataSanitizer:
                 safe[key] = self._sanitize_text(value or "")
             elif key == "address":
                 safe[key] = self._fuzzy_location(value or "")
+            elif key in ("phone", "email"):
+                safe[key] = self._sanitize_text(str(value)) if value else None
             elif key == "real_name":
                 continue
             elif key == "transaction_date":
@@ -168,7 +170,7 @@ class DataSanitizer:
                     continue
                 if key == "merchant":
                     safe[key] = self.generalize_merchant(value)
-                elif key in ("description", "address"):
+                elif key in ("description", "address", "phone", "email"):
                     safe[key] = self._sanitize_text(str(value)) if value else None
                 else:
                     safe[key] = value

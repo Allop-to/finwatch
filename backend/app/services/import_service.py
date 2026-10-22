@@ -25,7 +25,7 @@ def process_import(db: Session, filename: str, source_type: str, content: str, u
                 merchant=pt.merchant, description=pt.description,
                 payment_method=pt.payment_method, source="import",
             )
-            create_transaction(db, txn_data, user_id)
+            create_transaction(db, txn_data, user_id, import_id=imp.id)
 
         count_after = db.query(Transaction).filter(Transaction.user_id == user_id).count()
         new_count = count_after - count_before

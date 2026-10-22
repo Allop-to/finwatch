@@ -19,6 +19,7 @@ class DetectionContext:
     transactions: pl.DataFrame
     budgets: List[dict]
     global_baselines: dict
+    rules: List[dict] = field(default_factory=list)
 
 
 class BaseDetector(ABC):

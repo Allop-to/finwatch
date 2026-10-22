@@ -1,4 +1,5 @@
 ﻿from typing import List
+from datetime import datetime, time, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.budget import Budget
@@ -19,11 +20,14 @@ def list_budgets(db: Session, user_id: int = 1) -> List[Budget]:
 
 
 def get_budget_with_progress(db: Session, budget: Budget) -> dict:
+    # transaction_date 是 DATETIME，end_date 是 DATE；用半开区间避免漏掉结束日当天
+    period_start = datetime.combine(budget.start_date, time.min)
+    period_end = datetime.combine(budget.end_date, time.min) + timedelta(days=1)
     q = db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == budget.user_id,
         Transaction.type == "expense",
-        Transaction.transaction_date >= budget.start_date,
-        Transaction.transaction_date <= budget.end_date,
+        Transaction.transaction_date >= period_start,
+        Transaction.transaction_date < period_end,
     )
     if budget.category_id:
         q = q.filter(Transaction.category_id == budget.category_id)
